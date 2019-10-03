@@ -1,13 +1,28 @@
-#include "ImageDrawer.h"
-#include "BMP.h"
 #include <string>
+
+#include "ImageDrawer.h"
+#include "Exceptions.h"
+#include "BMP.h"
+
+CHAR_INFO& ImageDrawer::getCell(int x, int y, int index)
+{
+	if (x < 0 || x >= cols || y < 0 || y >= rows)
+	{
+		throw ConsoleVideoException("getCell(): index is out of bounds");
+	}
+	else if (index < 0 || index >= framesCount)
+	{
+		throw ConsoleVideoException("getCell(): this frame does not exist");
+	}
+	return this->data.at(index).at(y * cols + x);
+}
 
 ImageDrawer::ImageDrawer(int cols, int rows)
 {
 	this->cols = cols;
 	this->rows = rows;
 
-	this->hHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	this->hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	this->writeRegion = { 0, 0, (short)cols, (short)rows };
 }
 
@@ -59,102 +74,53 @@ void ImageDrawer::loadBMP(const char* filepath)
 
 }
 
-/*
-int ImageDrawer::loadBMP(const char* filepath)
+void ImageDrawer::setCursorVisibility(int mode)
 {
-	FILE* f = fopen(filepath, "rb");
-	if (!f) perror("fopen");
-	if (!f) return 0;
-
-	unsigned char info[54];
-	fread(info, sizeof(unsigned char), 54, f);
-
-	int width = *(int*)& info[18];
-	int height = *(int*)& info[22];
-
-	//if (width != this->cols || height != this->rows)
-		//return 0;
-
-	// Loading raw data
-	int row_padded = (width * 3 + 3) & (~3);
-	std::vector<unsigned char*> rows;
-	unsigned char* currentRow = new unsigned char[row_padded];
-	unsigned char temp;
-
-	for (int i = 0; i < height; i++)
-	{
-		fread(currentRow, sizeof(unsigned char), row_padded, f);
-		//for (int j = 0; j < width * 3; j += 3)
-		//{
-			// Convert (B, G, R) to (R, G, B)
-			//temp = currentRow[j];
-			//currentRow[j] = currentRow[j + 2];
-			//currentRow[j + 2] = temp;
-		//}
-		rows.push_back(currentRow);
-	}
-
-	fclose(f);
-
-	// Color translation (B, G, R)
-	for (auto it = rows.begin(); it != rows.end(); it++)
-	{
-		for (int i = 0; i < width * 3; i += 3)
-		{
-			CHAR_INFO curr;
-
-			float pixel[3] = { (int)(*it)[i + 2] / 255.0f, (int)(*it)[i + 1] / 255.0f, (int)(*it)[i] / 255.0f };
-			unsigned char pix[3] = { *(it)[i + 2], *(it)[i + 1], *(it)[i + 0] };
-
-			curr.Attributes = (*(it))[i] + 2;
-			curr.Char.UnicodeChar = L'\x2588';
-			this->data.push_back(curr);
-		}
-	}
+	CONSOLE_CURSOR_INFO info;
+	GetConsoleCursorInfo(this->hConsole, &info);
+	info.bVisible = mode;
+	SetConsoleCursorInfo(this->hConsole, &info);
 }
-*/
 
-CHAR_INFO& ImageDrawer::getCell(int x, int y, int index)
+void ImageDrawer::setPixelSize(int size)
 {
-	if (x < 0 || x >= cols || y < 0 || y >= rows)
-	{
-		__debugbreak();
-	}
-	else if (index < 0 || index >= framesCount)
-	{
-		__debugbreak();
-	}
-	return this->data.at(index).at(y * cols + x);
+	CONSOLE_FONT_INFOEX cfi;
+	cfi.cbSize = sizeof(cfi);
+	cfi.nFont = 0;
+	cfi.dwFontSize.X = size;   // Width of each character in the font
+	cfi.dwFontSize.Y = size;   // Height
+	cfi.FontFamily = FF_DONTCARE;
+	cfi.FontWeight = FW_NORMAL;
+	std::wcscpy(cfi.FaceName, L"Consolas");
+	SetCurrentConsoleFontEx(this->hConsole, FALSE, &cfi);
 }
 
 void ImageDrawer::drawSingleImage()
 {
 	int success = WriteConsoleOutputW(
-		this->hHandle,
+		this->hConsole,
 		&this->data.at(0).at(0),
 		{ (short)cols, (short)rows },
 		{ 0, 0 },
 		&this->writeRegion
 	);
+
 	if (!success)
-	{
-		__debugbreak();
-	}
+		throw ConsoleVideoException("Unsuccessful image output in drawSingleImage()");
 }
 
 void ImageDrawer::drawImageSequence()
 {
 	int success = WriteConsoleOutputW(
-		this->hHandle,
+		this->hConsole,
 		&this->data.at(currentFrame).at(0),
 		{ (short)cols, (short)rows },
 		{ 0, 0 },
 		&this->writeRegion
 	);
+
 	if (!success)
-	{
-		__debugbreak();
-	}
+		throw ConsoleVideoException("Unsuccessful image output in drawImageSequence()");
 
 	currentFrame++;
 	if (currentFrame == framesCount)
