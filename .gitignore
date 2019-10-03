@@ -2,3 +2,5 @@
 *.user
 *.txt
 *.vcxproj
+ConsoleVideo/out
+*.vs
