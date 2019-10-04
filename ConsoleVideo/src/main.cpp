@@ -7,9 +7,9 @@ int main()
 	ImageDrawer id(240, 115);
 
 	// Loading images one by one
-	for (int i = 100; i <= 504; i++)
+	for (int i = 100; i <= 541; i++)
 	{
-		std::string path = "res\\144p-video\\video";
+		std::string path = "res\\240x115-2\\video";
 		path += std::to_string(i) += ".bmp";
 		id.loadBMP(path.c_str());
 	}
@@ -17,6 +17,6 @@ int main()
 	id.setCursorVisibility(false);
 	id.setPixelSize(4);
 	
-	while (true)
+	while(true)
 		id.drawImageSequence();
 }

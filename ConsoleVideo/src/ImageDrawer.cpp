@@ -46,9 +46,9 @@ void ImageDrawer::loadBMP(const char* filepath)
 		int b = (int)image.data.at(i);
 
 		int color = (r > 128 | g > 128 | b > 128) ? FOREGROUND_INTENSITY : 0;
-		color |= (r > 64 ? FOREGROUND_RED   : 0);
-		color |= (g > 64 ? FOREGROUND_GREEN : 0);
-		color |= (b > 64 ? FOREGROUND_BLUE  : 0);
+		color |= (r > 80 ? FOREGROUND_RED   : 0);
+		color |= (g > 80 ? FOREGROUND_GREEN : 0);
+		color |= (b > 80 ? FOREGROUND_BLUE  : 0);
 
 		wchar_t character;
 		float brightness = (0.2126 * r + 0.7152 * g + 0.0722 * b); // 0 to 255 
